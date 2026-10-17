@@ -12,8 +12,8 @@ export class Camera {
   public x = 0;
   public y = 0;
   public zoom = 1;
-  public width = window.innerWidth || 1920;
-  public height = window.innerHeight || 1080;
+  public width = typeof window !== 'undefined' ? window.innerWidth : 1920;
+  public height = typeof window !== 'undefined' ? window.innerHeight : 1080;
 
   private minZoom = 0.05;
   private maxZoom = 20.0;

@@ -96,7 +96,7 @@ export default function DashboardPage() {
     setBoards([newBoard, ...boards]);
     setIsCreating(false);
     setNewTitle('');
-    router.push(`/board/${id}`);
+    router.push(`/board/${id}?title=${encodeURIComponent(title)}`);
   };
 
   const handleDeleteBoard = (id: string, e: React.MouseEvent) => {

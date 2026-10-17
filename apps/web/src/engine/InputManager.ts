@@ -310,6 +310,11 @@ export class InputManager {
       return;
     }
 
+    if (this.mode === 'rotating') {
+      this.applyRotation(worldPt);
+      return;
+    }
+
     if (this.mode === 'marquee' && this.marqueeStart) {
       this.marqueeCurrent = worldPt;
       this.updateMarqueeSelection();
@@ -357,7 +362,7 @@ export class InputManager {
         ui.setSelectedIds([this.activeElement.id]);
       }
       this.activeElement = null;
-    } else if (this.mode === 'moving' || this.mode === 'resizing') {
+    } else if (this.mode === 'moving' || this.mode === 'resizing' || this.mode === 'rotating') {
       this.recordTransformHistory();
     }
 
@@ -504,9 +509,45 @@ export class InputManager {
           newW = Math.max(10, orig.width - deltaX);
           newH = Math.max(10, orig.height + deltaY);
           break;
+        case 'tm':
+          newY = orig.y + deltaY;
+          newH = Math.max(10, orig.height - deltaY);
+          break;
+        case 'ml':
+          newX = orig.x + deltaX;
+          newW = Math.max(10, orig.width - deltaX);
+          break;
       }
 
       board.updateElement(id, { x: newX, y: newY, width: newW, height: newH });
+      const current = board.elements.get(id);
+      if (current) this.spatialIndex.update(current);
+    }
+  }
+
+  private applyRotation(worldPt: Point): void {
+    const board = useBoardStore.getState();
+    const selected = Array.from(this.initialTransformElements.values());
+    if (selected.length === 0) return;
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const el of selected) {
+      const b = getElementBounds(el);
+      if (b.minX < minX) minX = b.minX;
+      if (b.minY < minY) minY = b.minY;
+      if (b.maxX > maxX) maxX = b.maxX;
+      if (b.maxY > maxY) maxY = b.maxY;
+    }
+    const cx = minX + (maxX - minX) / 2;
+    const cy = minY + (maxY - minY) / 2;
+
+    const angle = Math.atan2(worldPt.y - cy, worldPt.x - cx) + Math.PI / 2;
+
+    for (const [id] of this.initialTransformElements.entries()) {
+      board.updateElement(id, { rotation: angle });
       const current = board.elements.get(id);
       if (current) this.spatialIndex.update(current);
     }
@@ -533,17 +574,20 @@ export class InputManager {
 
   private recordCreateHistory(elements: CanvasElement[]): void {
     const board = useBoardStore.getState();
+    const ids = elements.map((e) => e.id);
     this.history.push({
       description: 'Create ' + elements.length + ' element(s)',
       undo: () => {
-        board.deleteElements(elements.map((e) => e.id));
+        board.deleteElements(ids);
         elements.forEach((e) => this.spatialIndex.remove(e.id));
+        useUIStore.getState().clearSelection();
       },
       redo: () => {
         elements.forEach((e) => {
           board.addElement(e);
           this.spatialIndex.insert(e);
         });
+        useUIStore.getState().setSelectedIds(ids);
       },
     });
   }

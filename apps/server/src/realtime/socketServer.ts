@@ -11,16 +11,39 @@ import { roomManager } from './RoomManager.js';
 import { OperationProcessor } from './OperationProcessor.js';
 import { pubsub } from '../services/redis.js';
 
+const serverInstanceId = 'inst-' + Math.random().toString(36).substring(2, 9);
+
 export function setupSocketServer(io: Server): void {
   // Listen for distributed cross-instance operations from Redis
   pubsub.subscribe('board:cross_instance_ops', (raw) => {
     try {
       const data = JSON.parse(raw);
       if (data && data.boardId && data.ops) {
-        // Broadcast to local room sockets (except sender socket if on this instance)
+        // Prevent double broadcast if originated from this server instance
+        if (data.originInstanceId === serverInstanceId) return;
+
+        // Synchronize in-memory room state on this instance
+        const localRoom = roomManager.getRoom(data.boardId);
+        if (localRoom) {
+          OperationProcessor.processBatch(
+            localRoom,
+            {
+              id: 'redis-' + Date.now(),
+              boardId: data.boardId,
+              userId: data.userId,
+              timestamp: data.timestamp,
+              ops: data.ops,
+            },
+            'EDITOR'
+          );
+        }
+
+        // Broadcast to local room sockets on this instance
         io.to(`board:${data.boardId}`).emit(SOCKET_EVENTS.REMOTE_OPS, data);
       }
-    } catch {}
+    } catch (err) {
+      console.error('[Redis PubSub Receive Error]:', err);
+    }
   });
 
   io.on('connection', (socket: Socket) => {
@@ -31,8 +54,11 @@ export function setupSocketServer(io: Server): void {
     socket.on(
       SOCKET_EVENTS.JOIN_ROOM,
       async (payload: JoinRoomPayload, callback?: (ack: JoinRoomAck) => void) => {
-        const { boardId, userId, userName } = payload;
+        const { boardId, userId, userName, role } = payload;
         currentBoardId = boardId;
+        if (role) {
+          currentUserRole = role;
+        }
 
         // Auto-assign guest/collaborator info
         const finalUserId = userId || 'user-' + socket.id.substring(0, 6);
@@ -112,6 +138,7 @@ export function setupSocketServer(io: Server): void {
           version: room.version,
           ops: result.appliedOps,
           timestamp: Date.now(),
+          originInstanceId: serverInstanceId,
         };
 
         // Broadcast to all other peers in this room

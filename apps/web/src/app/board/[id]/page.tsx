@@ -16,19 +16,23 @@ export default function BoardPage({ params }: BoardPageProps) {
   const boardId = resolvedParams.id;
   const searchParams = useSearchParams();
   const roleParam = searchParams.get('role');
+  const titleParam = searchParams.get('title');
   const role: BoardRole =
     roleParam === 'viewer' ? 'VIEWER' : roleParam === 'owner' ? 'OWNER' : 'EDITOR';
 
   const setBoard = useBoardStore((s) => s.setBoard);
-  const elements = useBoardStore((s) => s.elements);
   const setStatus = useCollabStore((s) => s.setStatus);
   const setCollaborator = useCollabStore((s) => s.setCollaborator);
+  const initializedBoardRef = React.useRef<string | null>(null);
 
   useEffect(() => {
-    // If the board has not been initialized or is empty, provide seed elements
+    if (initializedBoardRef.current === boardId) return;
+    initializedBoardRef.current = boardId;
+
+    // If the board is the demo showcase, provide impressive architectural schematic
     const initialElements: CanvasElement[] = [];
 
-    if (boardId === 'demo' || elements.size === 0) {
+    if (boardId === 'demo') {
       // Create impressive architectural seed schematic
       // 1. Frame
       initialElements.push({
@@ -270,28 +274,28 @@ export default function BoardPage({ params }: BoardPageProps) {
       });
     }
 
-    setBoard(
-      boardId,
-      boardId === 'demo' ? 'Distributed Systems Architecture' : `Board: ${boardId}`,
-      role,
-      initialElements
-    );
+    const boardTitle =
+      titleParam || (boardId === 'demo' ? 'Distributed Systems Architecture' : `Board: ${boardId}`);
+
+    setBoard(boardId, boardTitle, role, initialElements);
 
     // Set connection status
     setStatus('connected');
 
-    // Add simulated remote collaborator for interactive realism
-    setCollaborator({
-      userId: 'collab-ai-1',
-      socketId: 'sock-ai-1',
-      userName: 'Elena (Staff Eng)',
-      userColor: '#ec4899',
-      cursor: { x: 200, y: -20, timestamp: Date.now() },
-      activeTool: 'pencil',
-      selectedElementIds: ['node-socket'],
-      lastActiveAt: Date.now(),
-    });
-  }, [boardId, role, setBoard, setStatus, setCollaborator, elements.size]);
+    if (boardId === 'demo') {
+      // Add simulated remote collaborator for interactive realism on demo showcase
+      setCollaborator({
+        userId: 'collab-ai-1',
+        socketId: 'sock-ai-1',
+        userName: 'Elena (Staff Eng)',
+        userColor: '#ec4899',
+        cursor: { x: 200, y: -20, timestamp: Date.now() },
+        activeTool: 'pencil',
+        selectedElementIds: ['node-socket'],
+        lastActiveAt: Date.now(),
+      });
+    }
+  }, [boardId, role, titleParam, setBoard, setStatus, setCollaborator]);
 
   return <WhiteboardCanvas boardId={boardId} />;
 }

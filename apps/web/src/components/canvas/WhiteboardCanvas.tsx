@@ -62,7 +62,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({ boardId }) =
 
     return () => {
       unsubscribeHistory();
-      engine.stop();
+      engine.destroy();
     };
   }, [emitCursorMove]);
 

@@ -41,9 +41,11 @@ export class CanvasEngine {
     this.attachEventListeners();
   }
 
+  private resizeHandler: (() => void) | null = null;
+
   private setupResizeHandler(): void {
-    const resize = () => {
-      this.dpr = window.devicePixelRatio || 1;
+    this.resizeHandler = () => {
+      this.dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
       const width = this.canvas.clientWidth;
       const height = this.canvas.clientHeight;
 
@@ -54,8 +56,10 @@ export class CanvasEngine {
       this.camera.resize(width, height);
     };
 
-    window.addEventListener('resize', resize);
-    resize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', this.resizeHandler);
+    }
+    this.resizeHandler();
   }
 
   private attachEventListeners(): void {
@@ -93,6 +97,14 @@ export class CanvasEngine {
     if (this.animFrameId) {
       cancelAnimationFrame(this.animFrameId);
       this.animFrameId = null;
+    }
+  }
+
+  public destroy(): void {
+    this.stop();
+    if (this.resizeHandler && typeof window !== 'undefined') {
+      window.removeEventListener('resize', this.resizeHandler);
+      this.resizeHandler = null;
     }
   }
 

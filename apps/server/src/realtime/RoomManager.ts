@@ -130,6 +130,18 @@ export class RoomManager {
       totalClients: clients,
     };
   }
+
+  public evictIdleRooms(idleTimeoutMs = 300000): number {
+    const now = Date.now();
+    let evicted = 0;
+    for (const [boardId, room] of this.rooms.entries()) {
+      if (room.clients.size === 0 && !room.isDirty && now - room.lastActivity >= idleTimeoutMs) {
+        this.rooms.delete(boardId);
+        evicted++;
+      }
+    }
+    return evicted;
+  }
 }
 
 export const roomManager = new RoomManager();

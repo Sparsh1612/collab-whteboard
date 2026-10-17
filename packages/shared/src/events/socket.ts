@@ -23,6 +23,7 @@ export interface JoinRoomPayload {
   userId?: string;
   userName?: string;
   token?: string;
+  role?: BoardRole;
 }
 
 export interface JoinRoomAck {

@@ -4,6 +4,29 @@ import { roomManager } from '../realtime/RoomManager.js';
 import { prisma } from './db.js';
 import { config } from '../config/env.js';
 
+let cachedSystemUserId: string | null = null;
+
+async function getOrCreateSystemUserId(): Promise<string> {
+  if (cachedSystemUserId) return cachedSystemUserId;
+  try {
+    const user = await prisma.user.upsert({
+      where: { email: 'system@canvasflow.local' },
+      update: {},
+      create: {
+        id: 'usr-system',
+        email: 'system@canvasflow.local',
+        passwordHash: '$2a$10$systemplaceholderhashforlocaldevonly12345',
+        name: 'System',
+        color: '#0d9488',
+      },
+    });
+    cachedSystemUserId = user.id;
+    return user.id;
+  } catch (err) {
+    return 'usr-system';
+  }
+}
+
 export class SnapshotWorker {
   private timer: NodeJS.Timeout | null = null;
   private io: Server | null = null;
@@ -29,9 +52,27 @@ export class SnapshotWorker {
 
       try {
         const elementsList = Array.from(room.elements.values());
-        
+
         // Attempt persistence to PostgreSQL
         try {
+          const ownerId = await getOrCreateSystemUserId();
+
+          await prisma.board.upsert({
+            where: { id: room.boardId },
+            update: {
+              version: room.version,
+              updatedAt: new Date(),
+            },
+            create: {
+              id: room.boardId,
+              title: room.boardId === 'demo' ? 'Distributed Systems Architecture' : `Board ${room.boardId}`,
+              ownerId,
+              isPublic: true,
+              publicRole: 'EDITOR',
+              version: room.version,
+            },
+          });
+
           await prisma.boardSnapshot.create({
             data: {
               boardId: room.boardId,
@@ -39,16 +80,8 @@ export class SnapshotWorker {
               elements: elementsList as any,
             },
           });
-
-          await prisma.board.update({
-            where: { id: room.boardId },
-            data: {
-              version: room.version,
-              updatedAt: new Date(),
-            },
-          });
         } catch (dbErr) {
-          // If board not yet in DB (e.g. demo room or standalone test mode), log debug
+          console.warn(`[SnapshotWorker] DB write skipped for board ${room.boardId}:`, (dbErr as Error).message);
         }
 
         room.isDirty = false;
@@ -64,6 +97,11 @@ export class SnapshotWorker {
       } catch (err) {
         console.error(`[SnapshotWorker] Error saving board ${room.boardId}:`, err);
       }
+    }
+
+    const evictedCount = roomManager.evictIdleRooms();
+    if (evictedCount > 0) {
+      console.log(`[SnapshotWorker] Evicted ${evictedCount} idle board rooms from memory.`);
     }
   }
 }

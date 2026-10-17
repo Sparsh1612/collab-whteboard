@@ -11,10 +11,13 @@
     "dev:web": "npm run dev --workspace=@whiteboard/web",
     "dev:server": "npm run dev --workspace=@whiteboard/server",
     "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "benchmark": "tsx scripts/benchmark-engine.ts",
     "lint": "npm run lint --workspaces"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "typescript": "^5.7.3"
   }
 }

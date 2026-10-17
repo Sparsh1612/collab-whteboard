@@ -36,7 +36,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({ camera, onFitContent
   };
 
   return (
-    <div className="fixed bottom-6 left-6 z-20 flex items-center gap-1 p-1 bg-slate-900/90 backdrop-blur-md border border-slate-800 shadow-panel rounded-2xl select-none text-slate-300 text-xs font-mono">
+    <div className="fixed bottom-20 md:bottom-6 left-4 md:left-6 z-20 flex items-center gap-1 p-1 bg-slate-900/90 backdrop-blur-md border border-slate-800 shadow-panel rounded-2xl select-none text-slate-300 text-xs font-mono">
       <button
         id="btn-zoom-out"
         onClick={handleZoomOut}

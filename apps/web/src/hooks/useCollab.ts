@@ -9,8 +9,9 @@ import {
   Point,
   UserPresence,
   JoinRoomAck,
+  CanvasElement,
 } from '@whiteboard/shared';
-import { useBoardStore } from '../stores/useBoardStore';
+import { useBoardStore, setBoardOpListener } from '../stores/useBoardStore';
 import { useCollabStore } from '../stores/useCollabStore';
 import { useUIStore } from '../stores/useUIStore';
 
@@ -35,129 +36,6 @@ export function useCollab(boardId: string) {
   const clearBoard = useBoardStore((s) => s.clearBoard);
   const setBoard = useBoardStore((s) => s.setBoard);
   const markSaved = useBoardStore((s) => s.markSaved);
-
-  // Connect Socket.IO
-  useEffect(() => {
-    if (!boardId) return;
-
-    setStatus('connecting');
-
-    const socket: Socket = io(SERVER_URL, {
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      timeout: 10000,
-    });
-    socketRef.current = socket;
-
-    socket.on('connect', () => {
-      setStatus('connected');
-
-      // Join room
-      socket.emit(
-        SOCKET_EVENTS.JOIN_ROOM,
-        {
-          boardId,
-          userId: currentUserId,
-          userName: 'Collaborator ' + currentUserId.slice(-4),
-        },
-        (ack: JoinRoomAck) => {
-          if (ack && ack.success) {
-            setBoard(ack.boardId, ack.title, ack.role, ack.elements);
-            setAllCollaborators(ack.presences);
-          }
-        }
-      );
-    });
-
-    socket.on('disconnect', () => {
-      setStatus('disconnected');
-    });
-
-    socket.on('connect_error', () => {
-      // In offline/standalone demo mode, gracefully remain usable locally
-      setStatus('offline');
-    });
-
-    // Remote operations from collaborators
-    socket.on(
-      SOCKET_EVENTS.REMOTE_OPS,
-      (payload: { boardId: string; userId: string; ops: BoardOp[] }) => {
-        if (payload.userId === currentUserId) return; // Ignore own echoes
-
-        for (const op of payload.ops) {
-          switch (op.type) {
-            case 'create':
-              op.elements.forEach((el) => addElement(el));
-              break;
-            case 'update':
-              op.elements.forEach((up) => updateElement(up.id, up));
-              break;
-            case 'delete':
-              deleteElements(op.ids);
-              break;
-            case 'reorder':
-              // Handled by zIndex updates in store
-              break;
-            case 'clear':
-              clearBoard();
-              break;
-          }
-        }
-      }
-    );
-
-    // Remote Presence & Cursor
-    socket.on(SOCKET_EVENTS.PRESENCE_UPDATE, (presence: UserPresence) => {
-      setCollaborator(presence);
-    });
-
-    socket.on(SOCKET_EVENTS.USER_JOINED, (presence: UserPresence) => {
-      setCollaborator(presence);
-    });
-
-    socket.on(SOCKET_EVENTS.USER_LEFT, ({ socketId, userId }: { socketId: string; userId: string }) => {
-      removeCollaborator(socketId || userId);
-    });
-
-    // Autosave notification
-    socket.on(SOCKET_EVENTS.BOARD_SAVED, () => {
-      markSaved();
-    });
-
-    // Ping latency check loop
-    latencyIntervalRef.current = setInterval(() => {
-      if (socket.connected) {
-        const start = performance.now();
-        socket.volatile.emit('ping', () => {
-          const latency = Math.round(performance.now() - start);
-          setLatency(latency);
-          useUIStore.getState().setDevMetrics({ wsLatencyMs: latency });
-        });
-      }
-    }, 5000);
-
-    return () => {
-      if (latencyIntervalRef.current) clearInterval(latencyIntervalRef.current);
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, [
-    boardId,
-    currentUserId,
-    setStatus,
-    setBoard,
-    setCollaborator,
-    removeCollaborator,
-    setAllCollaborators,
-    setLatency,
-    addElement,
-    updateElement,
-    deleteElements,
-    reorderElement,
-    clearBoard,
-    markSaved,
-  ]);
 
   // Emit cursor movement throttled
   const emitCursorMove = useCallback(
@@ -193,6 +71,175 @@ export function useCollab(boardId: string) {
     },
     [boardId, currentUserId]
   );
+
+  // Connect Socket.IO
+  useEffect(() => {
+    if (!boardId) return;
+
+    setStatus('connecting');
+
+    const socket: Socket = io(SERVER_URL, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      timeout: 10000,
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      setStatus('connected');
+
+      // Join room
+      socket.emit(
+        SOCKET_EVENTS.JOIN_ROOM,
+        {
+          boardId,
+          userId: currentUserId,
+          userName: 'Collaborator ' + currentUserId.slice(-4),
+        },
+        (ack: JoinRoomAck) => {
+          if (ack && ack.success) {
+            const serverElements = ack.elements || [];
+            const queued = [...outgoingQueueRef.current];
+
+            if (queued.length > 0) {
+              // Reconcile server elements with pending offline edits
+              const elementMap = new Map<string, CanvasElement>();
+              serverElements.forEach((el) => elementMap.set(el.id, el));
+
+              for (const op of queued) {
+                if (op.type === 'create') {
+                  op.elements.forEach((el) => elementMap.set(el.id, el));
+                } else if (op.type === 'update') {
+                  op.elements.forEach((up) => {
+                    const existing = elementMap.get(up.id);
+                    if (existing) {
+                      elementMap.set(up.id, { ...existing, ...up });
+                    }
+                  });
+                } else if (op.type === 'delete') {
+                  op.ids.forEach((id) => elementMap.delete(id));
+                }
+              }
+
+              // Update local board state with reconciled elements
+              setBoard(ack.boardId, ack.title, ack.role, Array.from(elementMap.values()));
+              setAllCollaborators(ack.presences);
+
+              // Flush queued offline batch to server for distribution
+              const batch: OpBatch = {
+                id: 'reconnect-batch-' + Math.random().toString(36).substring(2, 9),
+                boardId,
+                userId: currentUserId,
+                timestamp: Date.now(),
+                ops: queued,
+              };
+              socket.emit(SOCKET_EVENTS.OP_BATCH, batch);
+              outgoingQueueRef.current = [];
+            } else {
+              setBoard(ack.boardId, ack.title, ack.role, serverElements);
+              setAllCollaborators(ack.presences);
+            }
+          }
+        }
+      );
+    });
+
+    socket.on('disconnect', () => {
+      setStatus('disconnected');
+    });
+
+    socket.on('connect_error', () => {
+      // In offline/standalone demo mode, gracefully remain usable locally
+      setStatus('offline');
+    });
+
+    // Remote operations from collaborators
+    socket.on(
+      SOCKET_EVENTS.REMOTE_OPS,
+      (payload: { boardId: string; userId: string; ops: BoardOp[] }) => {
+        if (payload.userId === currentUserId) return; // Ignore own echoes
+
+        for (const op of payload.ops) {
+          switch (op.type) {
+            case 'create':
+              op.elements.forEach((el) => addElement(el, true));
+              break;
+            case 'update':
+              op.elements.forEach((up) => updateElement(up.id, up, true));
+              break;
+            case 'delete':
+              deleteElements(op.ids, true);
+              break;
+            case 'reorder':
+              // Handled by zIndex updates in store
+              break;
+            case 'clear':
+              clearBoard(true);
+              break;
+          }
+        }
+      }
+    );
+
+    // Register local board op listener to emit over WebSocket
+    setBoardOpListener((op) => {
+      emitOps([op]);
+    });
+
+    // Remote Presence & Cursor
+    socket.on(SOCKET_EVENTS.PRESENCE_UPDATE, (presence: UserPresence) => {
+      setCollaborator(presence);
+    });
+
+    socket.on(SOCKET_EVENTS.USER_JOINED, (presence: UserPresence) => {
+      setCollaborator(presence);
+    });
+
+    socket.on(SOCKET_EVENTS.USER_LEFT, ({ socketId, userId }: { socketId: string; userId: string }) => {
+      removeCollaborator(socketId || userId);
+    });
+
+    // Autosave notification
+    socket.on(SOCKET_EVENTS.BOARD_SAVED, () => {
+      markSaved();
+    });
+
+    // Ping latency check loop
+    latencyIntervalRef.current = setInterval(() => {
+      if (socket.connected) {
+        const start = performance.now();
+        socket.volatile.emit('ping', () => {
+          const latency = Math.round(performance.now() - start);
+          setLatency(latency);
+          useUIStore.getState().setDevMetrics({ wsLatencyMs: latency });
+        });
+      }
+    }, 5000);
+
+    return () => {
+      setBoardOpListener(null);
+      if (latencyIntervalRef.current) clearInterval(latencyIntervalRef.current);
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [
+    boardId,
+    currentUserId,
+    emitOps,
+    setStatus,
+    setBoard,
+    setCollaborator,
+    removeCollaborator,
+    setAllCollaborators,
+    setLatency,
+    addElement,
+    updateElement,
+    deleteElements,
+    reorderElement,
+    clearBoard,
+    markSaved,
+  ]);
 
   return {
     emitCursorMove,

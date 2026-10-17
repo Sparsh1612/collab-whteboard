@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import { CanvasElement, BoardRole } from '@whiteboard/shared';
+import { CanvasElement, BoardRole, BoardOp } from '@whiteboard/shared';
+
+let opListener: ((op: BoardOp) => void) | null = null;
+
+export const setBoardOpListener = (fn: ((op: BoardOp) => void) | null): void => {
+  opListener = fn;
+};
 
 interface BoardState {
   boardId: string | null;
@@ -15,11 +21,11 @@ interface BoardState {
   setTitle: (title: string) => void;
   setRole: (role: BoardRole) => void;
   setElements: (elements: CanvasElement[]) => void;
-  addElement: (element: CanvasElement) => void;
-  updateElement: (id: string, updates: Partial<CanvasElement>) => void;
-  deleteElements: (ids: string[]) => void;
-  reorderElement: (id: string, direction: 'front' | 'back' | 'forward' | 'backward') => void;
-  clearBoard: () => void;
+  addElement: (element: CanvasElement, isRemote?: boolean) => void;
+  updateElement: (id: string, updates: Partial<CanvasElement>, isRemote?: boolean) => void;
+  deleteElements: (ids: string[], isRemote?: boolean) => void;
+  reorderElement: (id: string, direction: 'front' | 'back' | 'forward' | 'backward', isRemote?: boolean) => void;
+  clearBoard: (isRemote?: boolean) => void;
   markSaved: () => void;
   getElementsByZIndex: () => CanvasElement[];
 }
@@ -56,32 +62,43 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     set({ elements: map, isDirty: true });
   },
 
-  addElement: (element) => {
+  addElement: (element, isRemote = false) => {
     const elements = new Map(get().elements);
     elements.set(element.id, element);
     set({ elements, isDirty: true });
+    if (!isRemote && opListener) {
+      opListener({ type: 'create', elements: [element] });
+    }
   },
 
-  updateElement: (id, updates) => {
+  updateElement: (id, updates, isRemote = false) => {
     const elements = new Map(get().elements);
     const existing = elements.get(id);
     if (!existing) return;
-    elements.set(id, {
+    const nextVersion = (existing.version || 1) + 1;
+    const updated = {
       ...existing,
       ...updates,
       updatedAt: Date.now(),
-      version: (existing.version || 1) + 1,
-    });
+      version: nextVersion,
+    };
+    elements.set(id, updated);
     set({ elements, isDirty: true });
+    if (!isRemote && opListener) {
+      opListener({ type: 'update', elements: [{ id, ...updates, version: nextVersion }] });
+    }
   },
 
-  deleteElements: (ids) => {
+  deleteElements: (ids, isRemote = false) => {
     const elements = new Map(get().elements);
     ids.forEach((id) => elements.delete(id));
     set({ elements, isDirty: true });
+    if (!isRemote && opListener) {
+      opListener({ type: 'delete', ids });
+    }
   },
 
-  reorderElement: (id, direction) => {
+  reorderElement: (id, direction, isRemote = false) => {
     const all = get().getElementsByZIndex();
     const idx = all.findIndex((el) => el.id === id);
     if (idx === -1) return;
@@ -117,9 +134,20 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       }
     }
     set({ elements, isDirty: true });
+    if (!isRemote && opListener) {
+      const target = elements.get(id);
+      if (target) {
+        opListener({ type: 'reorder', orders: [{ id, zIndex: target.zIndex }] });
+      }
+    }
   },
 
-  clearBoard: () => set({ elements: new Map(), isDirty: true }),
+  clearBoard: (isRemote = false) => {
+    set({ elements: new Map(), isDirty: true });
+    if (!isRemote && opListener) {
+      opListener({ type: 'clear' });
+    }
+  },
 
   markSaved: () => set({ isDirty: false, lastSavedAt: Date.now() }),
 

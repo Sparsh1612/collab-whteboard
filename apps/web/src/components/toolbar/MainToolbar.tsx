@@ -50,7 +50,7 @@ export const MainToolbar: React.FC<MainToolbarProps> = ({
   ];
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 p-1.5 bg-slate-900/90 backdrop-blur-md border border-slate-800 shadow-float rounded-2xl select-none transition-all">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 p-1.5 max-w-[calc(100vw-1.5rem)] overflow-x-auto bg-slate-900/90 backdrop-blur-md border border-slate-800 shadow-float rounded-2xl select-none transition-all">
       {tools.map((t) => {
         const isActive = activeTool === t.id;
         return (
