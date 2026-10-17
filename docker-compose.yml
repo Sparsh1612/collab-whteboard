@@ -1,0 +1,85 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: whiteboard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: whiteboard
+      POSTGRES_PASSWORD: whiteboard_secret
+      POSTGRES_DB: whiteboard_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U whiteboard -d whiteboard_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - whiteboard-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: whiteboard-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - whiteboard-net
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: whiteboard-server
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://whiteboard:whiteboard_secret@postgres:5432/whiteboard_db?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: canvasflow-super-secret-jwt-key-2026
+      CORS_ORIGIN: http://localhost:3000
+      AUTOSAVE_INTERVAL_MS: 3000
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - whiteboard-net
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: whiteboard-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_SOCKET_URL: http://localhost:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+    networks:
+      - whiteboard-net
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  whiteboard-net:
+    driver: bridge

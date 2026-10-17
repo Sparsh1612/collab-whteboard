@@ -1,0 +1,64 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  avatarUrl    String?
+  color        String        @default("#0d9488")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  ownedBoards  Board[]       @relation("BoardOwner")
+  memberships  BoardMember[]
+
+  @@index([email])
+}
+
+model Board {
+  id         String          @id @default(cuid())
+  title      String          @default("Untitled Board")
+  ownerId    String
+  owner      User            @relation("BoardOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  isPublic   Boolean         @default(true)
+  publicRole String          @default("EDITOR")
+  thumbnail  String?
+  version    Int             @default(1)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  members    BoardMember[]
+  snapshots  BoardSnapshot[]
+
+  @@index([ownerId])
+}
+
+model BoardMember {
+  id       String   @id @default(cuid())
+  boardId  String
+  board    Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String   @default("EDITOR")
+  joinedAt DateTime @default(now())
+
+  @@unique([boardId, userId])
+  @@index([userId])
+}
+
+model BoardSnapshot {
+  id        String   @id @default(cuid())
+  boardId   String
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  version   Int
+  elements  Json
+  createdAt DateTime @default(now())
+
+  @@index([boardId, version])
+}

@@ -1,0 +1,38 @@
+# Multi-stage production build for Node.js Realtime Server
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+# Copy root and package manifests
+COPY package*.json ./
+COPY packages/shared/package*.json ./packages/shared/
+COPY apps/server/package*.json ./apps/server/
+
+# Install dependencies
+RUN npm install
+
+# Copy source and prisma schemas
+COPY packages/shared ./packages/shared
+COPY apps/server ./apps/server
+
+# Build shared package and server
+RUN npm run build --workspace=@whiteboard/shared
+RUN npx prisma generate --schema=apps/server/prisma/schema.prisma
+RUN npm run build --workspace=@whiteboard/server
+
+# Production Runner
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=4000
+
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages/shared ./packages/shared
+COPY --from=builder /app/apps/server/dist ./apps/server/dist
+COPY --from=builder /app/apps/server/prisma ./apps/server/prisma
+COPY --from=builder /app/apps/server/package*.json ./apps/server/
+
+EXPOSE 4000
+
+CMD ["npm", "run", "start", "--workspace=@whiteboard/server"]
