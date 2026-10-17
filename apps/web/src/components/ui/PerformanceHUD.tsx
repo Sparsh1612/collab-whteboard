@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Activity, Eye, Layers, Wifi, Cpu, X, Zap } from 'lucide-react';
+import { Activity, X, Eye, Cpu, Wifi } from 'lucide-react';
 import { useUIStore } from '../../stores/useUIStore';
 import { useBoardStore } from '../../stores/useBoardStore';
 import { CanvasElement } from '@whiteboard/shared';
@@ -14,7 +14,7 @@ export const PerformanceHUD: React.FC = () => {
 
   const handleSpawnStress = (count: number) => {
     const types: ('rectangle' | 'ellipse' | 'sticky')[] = ['rectangle', 'ellipse', 'sticky'];
-    const colors = ['#0d9488', '#6366f1', '#f59e0b', '#ec4899', '#3b82f6'];
+    const colors = ['#2563eb', '#6366f1', '#f59e0b', '#ec4899', '#10b981'];
 
     const spread = Math.sqrt(count) * 240;
     for (let i = 0; i < count; i++) {
@@ -61,79 +61,66 @@ export const PerformanceHUD: React.FC = () => {
       : 'text-rose-400';
 
   return (
-    <aside aria-label="Engine Telemetry" className="fixed bottom-24 right-6 z-30 w-72 bg-slate-900/95 backdrop-blur-md border border-slate-800 shadow-float rounded-2xl p-4 text-xs font-mono text-slate-300 animate-in fade-in duration-150">
-      <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800 font-sans">
-        <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-teal-400" />
-          <span className="font-semibold text-slate-200">Engine Telemetry</span>
+    <aside
+      aria-label="Engine Telemetry"
+      className="fixed bottom-20 right-4 z-30 w-64 bg-[#10141f]/95 backdrop-blur-sm border border-[#1e2536] shadow-lg rounded-xl p-3 text-xs font-mono text-[#cbd5e1] select-none animate-in fade-in duration-150"
+    >
+      <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-[#1e2536] font-sans">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-white">
+          <Activity className="w-3.5 h-3.5 text-blue-400" />
+          <span>Telemetry</span>
         </div>
         <button
           onClick={() => setShowPerf(false)}
-          className="text-slate-400 hover:text-slate-200 transition"
+          className="text-[#64748b] hover:text-[#cbd5e1] transition"
         >
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      <div className="space-y-2">
-        {/* FPS */}
-        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-800/40 border border-slate-800/60">
-          <div className="flex items-center gap-2 text-slate-400 font-sans">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Frame Rate</span>
-          </div>
-          <span className={`font-bold text-sm ${fpsColor}`}>{devMetrics.fps} FPS</span>
+      <div className="space-y-1.5">
+        {/* Frame Rate */}
+        <div className="flex items-center justify-between py-1 px-2 rounded bg-[#161c2b] border border-[#1f283d]">
+          <span className="text-[11px] text-[#64748b] font-sans">Frame rate</span>
+          <span className={`font-semibold text-xs ${fpsColor}`}>{devMetrics.fps} FPS</span>
         </div>
 
-        {/* Render Time */}
-        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-800/40 border border-slate-800/60">
-          <div className="flex items-center gap-2 text-slate-400 font-sans">
-            <Cpu className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Frame Time</span>
-          </div>
-          <span className="text-slate-200 font-semibold">{devMetrics.renderTimeMs} ms</span>
+        {/* Frame Time */}
+        <div className="flex items-center justify-between py-1 px-2 rounded bg-[#161c2b] border border-[#1f283d]">
+          <span className="text-[11px] text-[#64748b] font-sans">Frame time</span>
+          <span className="text-[#cbd5e1] font-medium text-xs">{devMetrics.renderTimeMs} ms</span>
         </div>
 
-        {/* Culling stats: Visible vs Total */}
-        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-800/40 border border-slate-800/60">
-          <div className="flex items-center gap-2 text-slate-400 font-sans">
-            <Eye className="w-3.5 h-3.5 text-sky-400" />
-            <span>Visible Objects</span>
-          </div>
-          <span className="text-teal-400 font-semibold">
+        {/* Visible Objects */}
+        <div className="flex items-center justify-between py-1 px-2 rounded bg-[#161c2b] border border-[#1f283d]">
+          <span className="text-[11px] text-[#64748b] font-sans">Visible / Total</span>
+          <span className="text-blue-400 font-medium text-xs">
             {devMetrics.visibleCount}{' '}
-            <span className="text-slate-500 font-normal">/ {devMetrics.totalCount}</span>
+            <span className="text-[#64748b] font-normal">/ {devMetrics.totalCount}</span>
           </span>
         </div>
 
-        {/* WebSocket Latency */}
-        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-800/40 border border-slate-800/60">
-          <div className="flex items-center gap-2 text-slate-400 font-sans">
-            <Wifi className="w-3.5 h-3.5 text-amber-400" />
-            <span>WS Roundtrip</span>
-          </div>
-          <span className="text-slate-200 font-semibold">{devMetrics.wsLatencyMs} ms</span>
+        {/* Roundtrip Latency */}
+        <div className="flex items-center justify-between py-1 px-2 rounded bg-[#161c2b] border border-[#1f283d]">
+          <span className="text-[11px] text-[#64748b] font-sans">WebSocket RTT</span>
+          <span className="text-[#cbd5e1] font-medium text-xs">{devMetrics.wsLatencyMs} ms</span>
         </div>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-slate-800">
-        <div className="flex items-center justify-between text-[11px] font-sans font-semibold text-slate-300 mb-2">
-          <span>Benchmark Stress Test</span>
-        </div>
+      {/* Stress Benchmark */}
+      <div className="mt-2.5 pt-2 border-t border-[#1e2536]">
+        <div className="text-[10px] text-[#64748b] font-sans mb-1.5">Stress test items</div>
         <div className="grid grid-cols-4 gap-1">
           {[100, 500, 1000, 5000].map((count) => (
             <button
               key={count}
               id={`btn-stress-${count}`}
               onClick={() => handleSpawnStress(count)}
-              className="py-1 px-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] text-teal-300 font-mono text-center border border-slate-700/60 transition active:scale-95"
+              className="py-1 px-1 rounded bg-[#161c2b] hover:bg-[#1f283d] text-[10px] text-blue-400 font-mono text-center border border-[#1f283d] transition active:scale-95"
             >
               +{count}
             </button>
           ))}
-        </div>
-        <div className="mt-2 text-[10px] text-slate-400 text-center font-sans">
-          Spatial Hash Grid Culling (500px Buckets)
         </div>
       </div>
     </aside>

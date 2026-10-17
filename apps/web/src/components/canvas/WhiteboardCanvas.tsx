@@ -284,7 +284,7 @@ export const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({ boardId }) =
   ]);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-950 select-none">
+    <div className="relative w-screen h-screen overflow-hidden bg-[#0b0d13] select-none">
       {/* Top Header / Collaborator Bar */}
       <CollaboratorBar />
 

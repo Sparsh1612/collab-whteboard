@@ -26,7 +26,7 @@ export class Renderer {
     const isDark = theme === 'dark';
 
     // Clear background
-    ctx.fillStyle = isDark ? '#090d16' : '#f8fafc';
+    ctx.fillStyle = isDark ? '#0b0d13' : '#f8fafc';
     ctx.fillRect(0, 0, width, height);
 
     // Compute base grid step in world coordinates
@@ -41,8 +41,8 @@ export class Renderer {
     const startY = Math.floor(visible.minY / step) * step;
     const endY = Math.ceil(visible.maxY / step) * step;
 
-    ctx.fillStyle = isDark ? 'rgba(51, 65, 85, 0.45)' : 'rgba(203, 213, 225, 0.7)';
-    const dotRadius = Math.max(0.75, Math.min(1.75, 1.2 * Math.sqrt(zoom)));
+    ctx.fillStyle = isDark ? 'rgba(148, 163, 184, 0.14)' : 'rgba(100, 116, 139, 0.22)';
+    const dotRadius = Math.max(0.75, Math.min(1.5, 1.0 * Math.sqrt(zoom)));
 
     ctx.beginPath();
     for (let wx = startX; wx <= endX; wx += step) {
@@ -323,13 +323,13 @@ export class Renderer {
 
     ctx.save();
     // Bounding border
-    ctx.strokeStyle = '#0d9488'; // Brand teal
+    ctx.strokeStyle = '#3b82f6'; // Clean product blue
     ctx.lineWidth = 1.5;
     ctx.setLineDash([]);
     ctx.strokeRect(tl.x - pad, tl.y - pad, w + pad * 2, h + pad * 2);
 
     // 8 resize handles
-    const handleSize = 8;
+    const handleSize = 7;
     const halfH = handleSize / 2;
     const handles = [
       { x: tl.x - pad, y: tl.y - pad }, // tl
@@ -343,7 +343,7 @@ export class Renderer {
     ];
 
     ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#0d9488';
+    ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 1.5;
 
     for (const pt of handles) {
@@ -352,7 +352,7 @@ export class Renderer {
     }
 
     // Rotation handle connected with stem
-    const rotStem = 24;
+    const rotStem = 20;
     const rotHandle = { x: tl.x + w / 2, y: tl.y - pad - rotStem };
 
     ctx.beginPath();
@@ -361,7 +361,7 @@ export class Renderer {
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.arc(rotHandle.x, rotHandle.y, 4.5, 0, Math.PI * 2);
+    ctx.arc(rotHandle.x, rotHandle.y, 4, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
@@ -383,11 +383,11 @@ export class Renderer {
     const h = Math.abs(s2.y - s1.y);
 
     ctx.save();
-    ctx.fillStyle = 'rgba(13, 148, 136, 0.12)';
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.08)';
     ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = '#0d9488';
+    ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
+    ctx.setLineDash([3, 3]);
     ctx.strokeRect(x, y, w, h);
     ctx.restore();
   }
@@ -399,9 +399,9 @@ export class Renderer {
     guides: SnappingGuide[]
   ): void {
     ctx.save();
-    ctx.strokeStyle = '#ec4899'; // Bright magenta snap line
+    ctx.strokeStyle = '#6366f1'; // Calm indigo snap line
     ctx.lineWidth = 1;
-    ctx.setLineDash([4, 3]);
+    ctx.setLineDash([3, 3]);
 
     for (const guide of guides) {
       if (guide.type === 'x') {
@@ -431,42 +431,42 @@ export class Renderer {
   ): void {
     if (!presence.cursor) return;
     const screenPt = camera.worldToScreen(presence.cursor);
-    const color = presence.userColor || '#38bdf8';
+    const color = presence.userColor || '#3b82f6';
     const name = presence.userName || 'Anonymous';
 
     ctx.save();
-    // Modern cursor arrow pointer
     ctx.translate(screenPt.x, screenPt.y);
 
+    // Refined cursor arrow
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.lineTo(0, 15);
-    ctx.lineTo(4, 11);
-    ctx.lineTo(10, 11);
+    ctx.lineTo(0, 13);
+    ctx.lineTo(3.5, 9.5);
+    ctx.lineTo(8.5, 9.5);
     ctx.closePath();
     ctx.fill();
 
-    // Subtle dark stroke on cursor
-    ctx.strokeStyle = '#0f172a';
+    // Dark hairline stroke
+    ctx.strokeStyle = '#0b0d13';
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Collaborator label badge
-    ctx.font = '600 11px Inter, system-ui, sans-serif';
-    const labelW = ctx.measureText(name).width + 12;
-    const labelH = 20;
+    // Compact collaborator name tag
+    ctx.font = '500 10px Inter, system-ui, sans-serif';
+    const labelW = ctx.measureText(name).width + 10;
+    const labelH = 17;
     const labelX = 8;
-    const labelY = 14;
+    const labelY = 12;
 
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.roundRect(labelX, labelY, labelW, labelH, 4);
+    ctx.roundRect(labelX, labelY, labelW, labelH, 3);
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline = 'middle';
-    ctx.fillText(name, labelX + 6, labelY + labelH / 2);
+    ctx.fillText(name, labelX + 5, labelY + labelH / 2);
 
     ctx.restore();
   }

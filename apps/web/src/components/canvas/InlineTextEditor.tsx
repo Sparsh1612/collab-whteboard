@@ -78,7 +78,7 @@ export const InlineTextEditor: React.FC<InlineTextEditorProps> = ({
           color: isSticky ? '#1e293b' : '#f8fafc',
           backgroundColor: isSticky ? 'rgba(255, 255, 255, 0.4)' : 'rgba(15, 23, 42, 0.85)',
         }}
-        className="w-full h-full p-2 border-2 border-teal-500 rounded-lg outline-none resize-none shadow-xl backdrop-blur-sm"
+        className="w-full h-full p-2 border-2 border-blue-500 rounded-lg outline-none resize-none shadow-xl backdrop-blur-sm"
       />
     </div>
   );

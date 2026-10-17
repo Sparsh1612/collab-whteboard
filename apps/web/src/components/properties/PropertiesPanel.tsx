@@ -8,9 +8,6 @@ import {
   ArrowDown,
   ChevronsUp,
   ChevronsDown,
-  Palette,
-  Minus,
-  Sparkles,
 } from 'lucide-react';
 import { COLOR_PALETTE, STICKY_PALETTE } from '@whiteboard/shared';
 import { useUIStore } from '../../stores/useUIStore';
@@ -26,8 +23,6 @@ export const PropertiesPanel: React.FC = () => {
   const reorderElement = useBoardStore((s) => s.reorderElement);
   const addElement = useBoardStore((s) => s.addElement);
 
-  // If nothing is selected, we still show the panel for active tool defaults if useful,
-  // or show when elements are selected.
   const hasSelection = selectedIds.length > 0;
   const selectedElements = selectedIds.map((id) => elements.get(id)).filter(Boolean);
   const isSticky = selectedElements.some((el) => el?.type === 'sticky');
@@ -75,8 +70,8 @@ export const PropertiesPanel: React.FC = () => {
       const dup = {
         ...el,
         id: 'el-' + Math.random().toString(36).substring(2, 9),
-        x: el.x + 24,
-        y: el.y + 24,
+        x: el.x + 20,
+        y: el.y + 20,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -89,23 +84,27 @@ export const PropertiesPanel: React.FC = () => {
   if (!hasSelection) return null;
 
   return (
-    <div className="fixed top-20 left-6 z-20 w-64 bg-slate-900/95 backdrop-blur-md border border-slate-800 shadow-float rounded-2xl p-4 text-xs text-slate-300 space-y-4 animate-in fade-in slide-in-from-left-4 duration-200">
-      <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-        <span className="font-semibold text-slate-200 uppercase tracking-wider text-[11px]">
-          {selectedIds.length === 1 ? 'Object Properties' : `${selectedIds.length} Objects Selected`}
+    <aside
+      aria-label="Object Properties"
+      className="fixed top-16 left-4 z-20 w-60 bg-[#121622]/95 backdrop-blur-sm border border-[#1e2536] shadow-lg rounded-xl p-3.5 text-xs text-[#cbd5e1] space-y-3.5 select-none animate-in fade-in duration-150"
+    >
+      {/* Header with Object Properties text */}
+      <div className="flex items-center justify-between pb-2 border-b border-[#1e2536]">
+        <span className="font-semibold text-xs text-white tracking-tight">
+          {selectedIds.length === 1 ? 'Object Properties' : `Object Properties (${selectedIds.length})`}
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={handleDuplicate}
             title="Duplicate (Ctrl+D)"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            className="p-1 rounded text-[#64748b] hover:text-[#e2e8f0] hover:bg-[#1a2133] transition"
           >
             <Copy className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleDelete}
-            title="Delete (Backspace/Del)"
-            className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 transition"
+            title="Delete (Del)"
+            className="p-1 rounded text-[#64748b] hover:text-rose-400 hover:bg-rose-950/20 transition"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -115,14 +114,14 @@ export const PropertiesPanel: React.FC = () => {
       {/* Sticky Note Palette */}
       {isSticky && (
         <div>
-          <label className="block text-[11px] font-medium text-slate-400 mb-1.5">Note Color</label>
+          <label className="block text-[11px] font-medium text-[#64748b] mb-1.5">Note color</label>
           <div className="grid grid-cols-6 gap-1.5">
             {STICKY_PALETTE.map((item) => (
               <button
                 key={item.value}
                 onClick={() => handleStickyColor(item.value)}
                 style={{ backgroundColor: item.value }}
-                className="w-7 h-7 rounded-lg border border-black/10 hover:scale-110 active:scale-95 transition-all shadow-sm"
+                className="w-6 h-6 rounded border border-black/15 hover:scale-105 active:scale-95 transition-transform"
               />
             ))}
           </div>
@@ -132,16 +131,16 @@ export const PropertiesPanel: React.FC = () => {
       {/* Stroke Color */}
       {!isSticky && (
         <div>
-          <label className="block text-[11px] font-medium text-slate-400 mb-1.5">Stroke Color</label>
+          <label className="block text-[11px] font-medium text-[#64748b] mb-1.5">Stroke</label>
           <div className="grid grid-cols-6 gap-1.5">
             {COLOR_PALETTE.map((c) => (
               <button
                 key={c}
                 onClick={() => handleStrokeColor(c)}
-                style={{ backgroundColor: c === 'transparent' ? '#1e293b' : c }}
-                className={`w-7 h-7 rounded-lg border transition-all ${
-                  style.strokeColor === c ? 'border-teal-400 ring-2 ring-teal-400/30' : 'border-slate-700'
-                } ${c === 'transparent' ? 'relative overflow-hidden after:content-[""] after:absolute after:inset-0 after:border-t after:border-red-500 after:rotate-45' : ''}`}
+                style={{ backgroundColor: c === 'transparent' ? '#182030' : c }}
+                className={`w-6 h-6 rounded border transition-all ${
+                  style.strokeColor === c ? 'border-blue-400 ring-1 ring-blue-400/50' : 'border-[#263147]'
+                } ${c === 'transparent' ? 'relative overflow-hidden after:content-[""] after:absolute after:inset-0 after:border-t after:border-rose-500 after:rotate-45' : ''}`}
               />
             ))}
           </div>
@@ -151,16 +150,16 @@ export const PropertiesPanel: React.FC = () => {
       {/* Fill Color */}
       {!isSticky && !isText && (
         <div>
-          <label className="block text-[11px] font-medium text-slate-400 mb-1.5">Fill Color</label>
+          <label className="block text-[11px] font-medium text-[#64748b] mb-1.5">Fill</label>
           <div className="grid grid-cols-6 gap-1.5">
             {COLOR_PALETTE.map((c) => (
               <button
                 key={c}
                 onClick={() => handleFillColor(c)}
-                style={{ backgroundColor: c === 'transparent' ? '#1e293b' : c }}
-                className={`w-7 h-7 rounded-lg border transition-all ${
-                  style.fillColor === c ? 'border-teal-400 ring-2 ring-teal-400/30' : 'border-slate-700'
-                } ${c === 'transparent' ? 'relative overflow-hidden after:content-[""] after:absolute after:inset-0 after:border-t after:border-red-500 after:rotate-45' : ''}`}
+                style={{ backgroundColor: c === 'transparent' ? '#182030' : c }}
+                className={`w-6 h-6 rounded border transition-all ${
+                  style.fillColor === c ? 'border-blue-400 ring-1 ring-blue-400/50' : 'border-[#263147]'
+                } ${c === 'transparent' ? 'relative overflow-hidden after:content-[""] after:absolute after:inset-0 after:border-t after:border-rose-500 after:rotate-45' : ''}`}
               />
             ))}
           </div>
@@ -170,16 +169,16 @@ export const PropertiesPanel: React.FC = () => {
       {/* Stroke Width */}
       {!isSticky && !isText && (
         <div>
-          <label className="block text-[11px] font-medium text-slate-400 mb-1.5">Stroke Width</label>
-          <div className="grid grid-cols-4 gap-1.5">
+          <label className="block text-[11px] font-medium text-[#64748b] mb-1.5">Width</label>
+          <div className="grid grid-cols-4 gap-1">
             {[1, 2, 4, 8].map((w) => (
               <button
                 key={w}
                 onClick={() => handleStrokeWidth(w)}
-                className={`h-7 rounded-lg border flex items-center justify-center font-mono font-medium transition ${
+                className={`h-6 rounded text-[11px] font-mono transition ${
                   style.strokeWidth === w
-                    ? 'bg-teal-500/20 border-teal-500 text-teal-300'
-                    : 'border-slate-800 bg-slate-800/40 text-slate-400 hover:text-slate-200'
+                    ? 'bg-blue-600 text-white font-medium'
+                    : 'bg-[#182030] text-[#94a3b8] hover:text-[#e2e8f0]'
                 }`}
               >
                 {w}px
@@ -192,16 +191,16 @@ export const PropertiesPanel: React.FC = () => {
       {/* Stroke Style */}
       {!isSticky && !isText && (
         <div>
-          <label className="block text-[11px] font-medium text-slate-400 mb-1.5">Stroke Style</label>
-          <div className="grid grid-cols-3 gap-1.5">
+          <label className="block text-[11px] font-medium text-[#64748b] mb-1.5">Style</label>
+          <div className="grid grid-cols-3 gap-1">
             {(['solid', 'dashed', 'dotted'] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => handleStrokeStyle(s)}
-                className={`h-7 capitalize rounded-lg border text-center transition ${
+                className={`h-6 capitalize rounded text-[11px] transition ${
                   style.strokeStyle === s
-                    ? 'bg-teal-500/20 border-teal-500 text-teal-300'
-                    : 'border-slate-800 bg-slate-800/40 text-slate-400 hover:text-slate-200'
+                    ? 'bg-blue-600 text-white font-medium'
+                    : 'bg-[#182030] text-[#94a3b8] hover:text-[#e2e8f0]'
                 }`}
               >
                 {s}
@@ -211,11 +210,11 @@ export const PropertiesPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Opacity Slider */}
+      {/* Opacity */}
       <div>
-        <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+        <div className="flex justify-between text-[11px] text-[#64748b] mb-1">
           <span>Opacity</span>
-          <span className="font-mono">{Math.round(style.opacity * 100)}%</span>
+          <span className="font-mono text-[#94a3b8]">{Math.round(style.opacity * 100)}%</span>
         </div>
         <input
           type="range"
@@ -224,44 +223,44 @@ export const PropertiesPanel: React.FC = () => {
           step="0.05"
           value={style.opacity}
           onChange={(e) => handleOpacity(parseFloat(e.target.value))}
-          className="w-full accent-teal-500 bg-slate-800 cursor-pointer"
+          className="w-full accent-blue-500 bg-[#1e2536] h-1.5 rounded-lg appearance-none cursor-pointer"
         />
       </div>
 
       {/* Layer Ordering */}
-      <div className="pt-2 border-t border-slate-800">
-        <label className="block text-[11px] font-medium text-slate-400 mb-1.5">Arrange Layers</label>
-        <div className="grid grid-cols-4 gap-1.5">
+      <div className="pt-2 border-t border-[#1e2536]">
+        <label className="block text-[11px] font-medium text-[#64748b] mb-1.5">Layer</label>
+        <div className="grid grid-cols-4 gap-1">
           <button
             onClick={() => selectedIds[0] && reorderElement(selectedIds[0], 'front')}
-            title="Bring to Front"
-            className="h-7 rounded-lg border border-slate-800 bg-slate-800/40 hover:bg-slate-800 flex items-center justify-center text-slate-300"
+            title="Bring to front"
+            className="h-6 rounded bg-[#182030] hover:bg-[#202b40] flex items-center justify-center text-[#94a3b8] hover:text-white transition"
           >
             <ChevronsUp className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => selectedIds[0] && reorderElement(selectedIds[0], 'forward')}
-            title="Bring Forward"
-            className="h-7 rounded-lg border border-slate-800 bg-slate-800/40 hover:bg-slate-800 flex items-center justify-center text-slate-300"
+            title="Bring forward"
+            className="h-6 rounded bg-[#182030] hover:bg-[#202b40] flex items-center justify-center text-[#94a3b8] hover:text-white transition"
           >
             <ArrowUp className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => selectedIds[0] && reorderElement(selectedIds[0], 'backward')}
-            title="Send Backward"
-            className="h-7 rounded-lg border border-slate-800 bg-slate-800/40 hover:bg-slate-800 flex items-center justify-center text-slate-300"
+            title="Send backward"
+            className="h-6 rounded bg-[#182030] hover:bg-[#202b40] flex items-center justify-center text-[#94a3b8] hover:text-white transition"
           >
             <ArrowDown className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => selectedIds[0] && reorderElement(selectedIds[0], 'back')}
-            title="Send to Back"
-            className="h-7 rounded-lg border border-slate-800 bg-slate-800/40 hover:bg-slate-800 flex items-center justify-center text-slate-300"
+            title="Send to back"
+            className="h-6 rounded bg-[#182030] hover:bg-[#202b40] flex items-center justify-center text-[#94a3b8] hover:text-white transition"
           >
             <ChevronsDown className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
-    </div>
+    </aside>
   );
 };

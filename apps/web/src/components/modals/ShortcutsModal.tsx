@@ -8,17 +8,25 @@ export const ShortcutsModal: React.FC = () => {
   const showShortcuts = useUIStore((s) => s.showShortcuts);
   const setShowShortcuts = useUIStore((s) => s.setShowShortcuts);
 
+  React.useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowShortcuts(false);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [setShowShortcuts]);
+
   if (!showShortcuts) return null;
 
-  const shortcuts = [
+  const shortcutGroups = [
     {
-      category: 'Drawing & Tools',
+      category: 'Tools',
       items: [
         { key: 'V', desc: 'Select tool' },
         { key: 'H', desc: 'Hand / Pan tool' },
         { key: 'P', desc: 'Pencil / Freehand' },
-        { key: 'R', desc: 'Rectangle shape' },
-        { key: 'O', desc: 'Ellipse / Circle' },
+        { key: 'R', desc: 'Rectangle' },
+        { key: 'O', desc: 'Ellipse' },
         { key: 'L', desc: 'Line' },
         { key: 'A', desc: 'Arrow' },
         { key: 'T', desc: 'Text box' },
@@ -28,65 +36,72 @@ export const ShortcutsModal: React.FC = () => {
       ],
     },
     {
-      category: 'Navigation & Canvas',
+      category: 'Navigation',
       items: [
-        { key: 'Space + Drag', desc: 'Pan around canvas' },
-        { key: 'Wheel / Pinch', desc: 'Zoom toward cursor' },
-        { key: 'Ctrl + 0', desc: 'Reset zoom to 100%' },
-        { key: 'Shift + Drag', desc: 'Constrain proportions / Marquee' },
+        { key: 'Space + Drag', desc: 'Pan canvas' },
+        { key: 'Wheel', desc: 'Zoom to point' },
+        { key: 'Shift + 1', desc: 'Fit to content' },
+        { key: 'Ctrl + 0', desc: 'Reset zoom (100%)' },
       ],
     },
     {
-      category: 'Editing & History',
+      category: 'Editing',
       items: [
         { key: 'Ctrl + Z', desc: 'Undo' },
         { key: 'Ctrl + Shift + Z', desc: 'Redo' },
         { key: 'Ctrl + C', desc: 'Copy selected' },
-        { key: 'Ctrl + V', desc: 'Paste' },
+        { key: 'Ctrl + V', desc: 'Paste copied' },
         { key: 'Ctrl + D', desc: 'Duplicate selected' },
-        { key: 'Ctrl + A', desc: 'Select all elements' },
-        { key: 'Del / Backspace', desc: 'Delete selected' },
+        { key: 'Backspace / Del', desc: 'Delete selected' },
+      ],
+    },
+    {
+      category: 'Selection',
+      items: [
+        { key: 'Ctrl + A', desc: 'Select all' },
+        { key: 'Shift + Drag', desc: 'Marquee selection' },
+        { key: 'Esc', desc: 'Clear selection' },
       ],
     },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl shadow-float overflow-hidden flex flex-col">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setShowShortcuts(false);
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+    >
+      <div className="bg-[#121622] border border-[#1e2536] rounded-xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-teal-500/10 text-teal-400">
-              <Keyboard className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-slate-100">Keyboard Shortcuts</h2>
-              <p className="text-xs text-slate-400">Pro-level navigation and whiteboard controls</p>
-            </div>
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1e2536]">
+          <div className="flex items-center gap-2">
+            <Keyboard className="w-4 h-4 text-blue-400" />
+            <h2 className="text-sm font-semibold text-white">Keyboard shortcuts</h2>
           </div>
           <button
             onClick={() => setShowShortcuts(false)}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            className="p-1 rounded-md text-[#64748b] hover:text-[#cbd5e1] hover:bg-[#182030] transition"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Shortcuts Content */}
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto">
-          {shortcuts.map((group) => (
-            <div key={group.category} className="space-y-2.5">
-              <h3 className="text-xs font-semibold text-teal-400 uppercase tracking-wider">
+        {/* Shortcuts Grid */}
+        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 max-h-[70vh] overflow-y-auto">
+          {shortcutGroups.map((group) => (
+            <div key={group.category} className="space-y-2">
+              <span className="text-[11px] font-semibold text-[#475569] uppercase tracking-wider block">
                 {group.category}
-              </h3>
-              <div className="space-y-1.5">
+              </span>
+              <div className="space-y-1">
                 {group.items.map((item) => (
                   <div
                     key={item.key}
-                    className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/70 border border-slate-800/60"
+                    className="flex items-center justify-between text-xs py-1 px-2 rounded-md bg-[#161c2b] border border-[#1f283d]"
                   >
-                    <span className="text-slate-300">{item.desc}</span>
-                    <kbd className="px-2 py-0.5 bg-slate-900 border border-slate-700 rounded text-[11px] font-mono text-slate-200 shadow-sm">
+                    <span className="text-[#94a3b8] text-[11px]">{item.desc}</span>
+                    <kbd className="px-1.5 py-0.5 bg-[#0e121a] border border-[#252f44] rounded text-[10px] font-mono text-[#cbd5e1] shadow-xs">
                       {item.key}
                     </kbd>
                   </div>
@@ -97,10 +112,10 @@ export const ShortcutsModal: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-950/50 border-t border-slate-800 flex justify-end">
+        <div className="px-5 py-3 bg-[#0e121a] border-t border-[#1e2536] flex justify-end">
           <button
             onClick={() => setShowShortcuts(false)}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl transition"
+            className="px-3.5 py-1.5 bg-[#182030] hover:bg-[#202b40] text-[#e2e8f0] text-xs font-medium rounded-lg transition"
           >
             Close
           </button>

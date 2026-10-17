@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus, Minus, Maximize, RotateCcw } from 'lucide-react';
+import { Plus, Minus, Maximize } from 'lucide-react';
 import { Camera } from '../../engine/Camera';
 
 interface ZoomControlsProps {
@@ -16,7 +16,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({ camera, onFitContent
     if (!camera) return;
     const interval = setInterval(() => {
       setZoomPercent(Math.round(camera.zoom * 100));
-    }, 100);
+    }, 120);
     return () => clearInterval(interval);
   }, [camera]);
 
@@ -36,12 +36,12 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({ camera, onFitContent
   };
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 left-4 md:left-6 z-20 flex items-center gap-1 p-1 bg-slate-900/90 backdrop-blur-md border border-slate-800 shadow-panel rounded-2xl select-none text-slate-300 text-xs font-mono">
+    <div className="fixed bottom-5 left-4 z-20 flex items-center gap-0.5 p-1 bg-[#121622]/95 backdrop-blur-sm border border-[#1e2536] shadow-sm rounded-lg select-none text-[#cbd5e1] text-xs font-mono">
       <button
         id="btn-zoom-out"
         onClick={handleZoomOut}
-        title="Zoom Out"
-        className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+        title="Zoom out"
+        className="p-1.5 rounded-md text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#182030] transition"
       >
         <Minus className="w-3.5 h-3.5" />
       </button>
@@ -49,8 +49,8 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({ camera, onFitContent
       <button
         id="btn-zoom-reset"
         onClick={handleResetZoom}
-        title="Reset Zoom to 100%"
-        className="px-2 py-1 min-w-[52px] text-center rounded-lg hover:bg-slate-800 transition font-semibold text-slate-200"
+        title="Reset zoom to 100%"
+        className="px-2 py-0.5 min-w-[48px] text-center rounded text-[11px] hover:bg-[#182030] transition font-medium text-[#cbd5e1]"
       >
         {zoomPercent}%
       </button>
@@ -58,23 +58,24 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({ camera, onFitContent
       <button
         id="btn-zoom-in"
         onClick={handleZoomIn}
-        title="Zoom In"
-        className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+        title="Zoom in"
+        className="p-1.5 rounded-md text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#182030] transition"
       >
         <Plus className="w-3.5 h-3.5" />
       </button>
 
-      <div className="w-[1px] h-4 bg-slate-800 mx-0.5" />
-
       {onFitContent && (
-        <button
-          id="btn-fit-content"
-          onClick={onFitContent}
-          title="Fit to Content (Shift+1)"
-          className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
-        >
-          <Maximize className="w-3.5 h-3.5" />
-        </button>
+        <>
+          <div className="w-[1px] h-3.5 bg-[#1e2536] mx-0.5" />
+          <button
+            id="btn-fit-content"
+            onClick={onFitContent}
+            title="Fit to content (Shift+1)"
+            className="p-1.5 rounded-md text-[#94a3b8] hover:text-[#f1f5f9] hover:bg-[#182030] transition"
+          >
+            <Maximize className="w-3.5 h-3.5" />
+          </button>
+        </>
       )}
     </div>
   );
