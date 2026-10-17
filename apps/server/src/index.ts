@@ -2,7 +2,7 @@ import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import { Server as SocketIOServer } from 'socket.io';
-import { config } from './config/env.js';
+import { config, isOriginAllowed } from './config/env.js';
 import { setupSocketServer } from './realtime/socketServer.js';
 import { snapshotWorker } from './services/snapshotWorker.js';
 import { roomManager } from './realtime/RoomManager.js';
@@ -17,11 +17,19 @@ import { requireAuth, optionalAuth } from './middleware/auth.js';
 const app = express();
 const server = http.createServer(app);
 
-// Configure CORS
+// Configure CORS for Express
 app.use(
   cors({
-    origin: '*',
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   })
 );
 app.use(express.json());
@@ -29,8 +37,15 @@ app.use(express.json());
 // Initialize Socket.IO with CORS
 const io = new SocketIOServer(server, {
   cors: {
-    origin: '*',
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Socket.IO CORS blocked for origin: ${origin}`));
+      }
+    },
     methods: ['GET', 'POST'],
+    credentials: true,
   },
   pingInterval: 10000,
   pingTimeout: 5000,

@@ -2,6 +2,18 @@ import Redis from 'ioredis';
 import { EventEmitter } from 'events';
 import { config } from '../config/env.js';
 
+function sanitizeRedisUrl(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.password) {
+      parsed.password = '***';
+    }
+    return parsed.toString();
+  } catch {
+    return rawUrl.replace(/:([^:@]+)@/, ':***@');
+  }
+}
+
 class DistributedPubSub {
   private pubClient: Redis | null = null;
   private subClient: Redis | null = null;
@@ -14,17 +26,26 @@ class DistributedPubSub {
   }
 
   private init(): void {
+    const sanitizedUrl = sanitizeRedisUrl(config.REDIS_URL);
     try {
-      this.pubClient = new Redis(config.REDIS_URL);
-      this.subClient = new Redis(config.REDIS_URL);
+      const options = {
+        maxRetriesPerRequest: null,
+        retryStrategy(times: number) {
+          return Math.min(times * 150, 3000);
+        },
+        tls: config.REDIS_URL.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
+      };
+
+      this.pubClient = new Redis(config.REDIS_URL, options);
+      this.subClient = new Redis(config.REDIS_URL, options);
 
       this.pubClient.on('connect', () => {
-        console.log('[Redis] Publisher connected to ' + config.REDIS_URL);
+        console.log('[Redis] Publisher connected to ' + sanitizedUrl);
         this.isConnected = true;
       });
 
       this.subClient.on('connect', () => {
-        console.log('[Redis] Subscriber connected to ' + config.REDIS_URL);
+        console.log('[Redis] Subscriber connected to ' + sanitizedUrl);
       });
 
       this.subClient.on('message', (channel: string, message: string) => {
@@ -40,10 +61,18 @@ class DistributedPubSub {
         }
       });
 
-      this.pubClient.on('error', () => {});
-      this.subClient.on('error', () => {});
+      this.pubClient.on('error', (err: any) => {
+        if (config.NODE_ENV === 'development') {
+          console.warn('[Redis] Pub client error:', err?.message || err);
+        }
+      });
+      this.subClient.on('error', (err: any) => {
+        if (config.NODE_ENV === 'development') {
+          console.warn('[Redis] Sub client error:', err?.message || err);
+        }
+      });
     } catch (e) {
-      console.warn('[Redis] Operating in fallback memory mode');
+      console.warn('[Redis] Failed to initialize connection to ' + sanitizedUrl + ', operating in fallback memory mode');
     }
   }
 

@@ -11,10 +11,18 @@
     "dev:web": "npm run dev --workspace=@whiteboard/web",
     "dev:server": "npm run dev --workspace=@whiteboard/server",
     "build": "npm run build --workspaces",
+    "build:shared": "npm run build --workspace=@whiteboard/shared",
+    "build:web": "npm run build --workspace=@whiteboard/shared && npm run build --workspace=@whiteboard/web",
+    "build:server": "npm run build --workspace=@whiteboard/shared && npm run build --workspace=@whiteboard/server",
+    "start:web": "npm run start --workspace=@whiteboard/web",
+    "start:server": "npm run start --workspace=@whiteboard/server",
+    "prisma:generate": "npm run prisma:generate --workspace=@whiteboard/server",
+    "prisma:migrate:deploy": "npm run prisma:migrate:deploy --workspace=@whiteboard/server",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "benchmark": "tsx scripts/benchmark-engine.ts",
-    "lint": "npm run lint --workspaces"
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

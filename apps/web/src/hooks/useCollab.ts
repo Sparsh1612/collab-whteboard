@@ -14,8 +14,9 @@ import {
 import { useBoardStore, setBoardOpListener } from '../stores/useBoardStore';
 import { useCollabStore } from '../stores/useCollabStore';
 import { useUIStore } from '../stores/useUIStore';
+import { env } from '../config/env';
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+const SERVER_URL = env.SOCKET_URL;
 
 export function useCollab(boardId: string) {
   const socketRef = useRef<Socket | null>(null);
@@ -80,9 +81,11 @@ export function useCollab(boardId: string) {
 
     const socket: Socket = io(SERVER_URL, {
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
-      timeout: 10000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
     socketRef.current = socket;
 
@@ -145,12 +148,28 @@ export function useCollab(boardId: string) {
       );
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
+      if (reason === 'io server disconnect') {
+        socket.connect();
+      }
       setStatus('disconnected');
     });
 
     socket.on('connect_error', () => {
       // In offline/standalone demo mode, gracefully remain usable locally
+      setStatus('offline');
+    });
+
+    // Reconnection lifecycle
+    socket.io.on('reconnect_attempt', () => {
+      setStatus('connecting');
+    });
+
+    socket.io.on('reconnect', () => {
+      setStatus('connected');
+    });
+
+    socket.io.on('reconnect_failed', () => {
       setStatus('offline');
     });
 
